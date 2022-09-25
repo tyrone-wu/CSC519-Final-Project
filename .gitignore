@@ -1,0 +1,12 @@
+node_modules/
+.env
+inventory
+buildjob-vm-info.txt
+.vscode/
+checkbox.io-micro-preview/
+test-harness/node_modules/
+test-screenshots/original/
+test-screenshots/mutated/
+mutation-repository/
+deployment/iTrust.war
+tmp*
