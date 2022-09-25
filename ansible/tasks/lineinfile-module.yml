@@ -1,0 +1,15 @@
+---
+# lineinfile module
+- name: "{{ item.name }}"
+  lineinfile:
+    path: "{{ item.path }}"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  when: item.option == "replace"
+
+- name: "{{ item.name }}"
+  lineinfile:
+    path: "{{ item.path }}"
+    insertafter: "{{ item.insertafter }}"
+    line: "{{ item.line }}"
+  when: item.option == "insert"

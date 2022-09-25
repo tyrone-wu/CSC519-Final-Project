@@ -1,0 +1,15 @@
+---
+# shell module
+- name: "{{ item.name }}"
+  shell: "{{ item.cmd }}"
+  when: item.option == "sync"
+  retries: 10
+  delay: 5
+  register: retry_result
+  until: retry_result is not failed
+
+- name: "{{ item.name }}"
+  shell: "{{ item.cmd }}"
+  async: 1000
+  poll: 0
+  when: item.option == "async"

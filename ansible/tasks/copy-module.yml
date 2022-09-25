@@ -1,0 +1,16 @@
+---
+# copy module
+- name: "{{ item.name }}"
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    remote_src: yes
+    force: yes
+  when: item.option == "file"
+
+- name: "{{ item.name }}"
+  copy:
+    content: "{{ item.content }}"
+    dest: "{{ item.dest }}"
+    force: yes
+  when: item.option == "content"

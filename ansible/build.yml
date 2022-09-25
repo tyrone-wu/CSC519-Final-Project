@@ -1,0 +1,828 @@
+---
+### Variables ############################################################################################
+
+repo_dir: "/home/vagrant/repository"
+
+# build-itrust vars -------------------------------------------------------------------------------------- | M1 Build iTrust |
+git_pat: "{{ lookup('env','GIT_PAT') | trim }}"
+mysql_pass: "{{ lookup('env','MYSQL_PASSWORD') | trim }}"
+mysql_port: 3306
+
+# deploy-itrust vars ------------------------------------------------------------------------------------- | M3 Deploy iTrust |
+tomcat_dir: /home/vagrant/tomcat
+tomcat_url: https://downloads.apache.org/tomcat/tomcat-9/v9.0.62/bin/apache-tomcat-9.0.62.tar.gz
+webapp_port: 8080
+webapp_endpoint: /iTrust/login
+
+# mutation-coverage vars --------------------------------------------------------------------------------- | M2 Mutation Coverage |
+mut_dir: "/bakerx/mutation-repository"
+
+# Open Source Project 1 vars: 7ep demo ------------------------------------------------------------------- | Open Source Project 1: 7ep demo |
+proj1_repo: https://github.com/7ep/demo.git
+proj1_webapp_port: 8080
+proj1_webapp_endpoint: /demo
+
+# Open Source Project 2 vars: tighten confomo ------------------------------------------------------------ | Open Source Project 2: tighten confomo |
+proj2_repo: https://github.com/tighten/confomo.git
+proj2_webapp_port: 8080
+proj2_webapp_endpoint: /
+
+### Package Setup ########################################################################################
+
+# Package setup
+setup:
+
+  - name: build-itrust # --------------------------------------------------------------------------------- | M1 Build iTrust |
+    packages:
+    - pkg: maven
+    - pkg: debconf-utils
+    - pkg: openjdk-11-jdk
+  
+  - name: deploy-itrust # -------------------------------------------------------------------------------- | M3 Deploy iTrust |
+    packages:
+    - pkg: maven
+    - pkg: debconf-utils
+    - pkg: openjdk-11-jdk
+
+  - name: mutation-coverage # ---------------------------------------------------------------------------- | M2 Mutation Coverage |
+    packages:
+    - pkg: chromium-browser
+    - pkg: libpangocairo-1.0-0
+    - pkg: libgbm-dev
+    - pkg: libxdamage1
+    - pkg: libatk-bridge2.0-0
+    - pkg: libatk1.0-0
+    - pkg: libcups2
+    - pkg: libnss3-dev
+    - pkg: libgbm1
+    - pkg: libgtk-3-0
+    - pkg: libasound2
+  
+  - name: build-7ep_demo # ------------------------------------------------------------------------------- | Build Open Source Project 1: 7ep demo |
+    packages:
+    - pkg: openjdk-11-jdk
+  
+  - name: test-7ep_demo # -------------------------------------------------------------------------------- | Test Open Source Project 1: 7ep demo |
+    packages:
+    - pkg: unzip
+  
+  - name: deploy-7ep_demo # ------------------------------------------------------------------------------ | Deploy Open Source Project 1: 7ep demo |
+    packages:
+    - pkg: openjdk-11-jdk
+  
+  - name: kill-7ep_demo # -------------------------------------------------------------------------------- | Kill Open Source Project 1: 7ep demo (not new feature; just for my convenience) |
+    packages:
+  
+  - name: build-tighten_confomo # ------------------------------------------------------------------------ | Build Open Source Project 2: tighten confomo |
+    packages:
+    - pkg: software-properties-common
+    - pkg: unzip
+  
+  - name: test-tighten_confomo # ------------------------------------------------------------------------- | Test Open Source Project 2: tighten confomo |
+    packages:
+  
+  - name: deploy-tighten_confomo # ----------------------------------------------------------------------- | Deploy Open Source Project 2: tighten confomo |
+    packages:
+    - pkg: software-properties-common
+    - pkg: unzip
+    - pkg: python2
+
+### Jobs #################################################################################################
+
+# List of jobs with execution steps
+jobs:
+
+  - name: build-tighten_confomo # ------------------------------------------------------------------------ | Build Open Source Project 2: tighten confomo |
+    steps:
+
+      - name: curl nodejs 16
+        type: shell
+        option: sync
+        cmd: curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+
+      - name: Install nodejs from the curl'd setup script
+        type: apt
+        pkg: nodejs
+      
+      - name: Create empty directory for repo
+        type: file
+        path: "{{ repo_dir }}"
+        state: directory
+
+      - name: Clone tighten confomo repo
+        type: git
+        repo: "{{ proj2_repo }}"
+        dest: "{{ repo_dir }}"
+        branch: master
+      
+      - name: Install repository for PHP versions
+        type: command
+        cmd: add-apt-repository ppa:ondrej/php -y
+        dir: /
+      
+      - name: Update apt-get package manager with the new PHP stuff
+        type: command
+        cmd: apt-get update -y
+        dir: /
+      
+      - name: Update apt package manager with the new PHP stuff
+        type: command
+        cmd: apt update -y
+        dir: /
+      
+      - name: Install PHP 7.4
+        type: command
+        cmd: apt install -y php7.4
+        dir: /
+      
+      - name: Install additional PHP components with apt
+        type: command
+        cmd: apt install -qq -y php7.4-cli php7.4-curl php7.4-mbstring php7.4-xml php7.4-zip php7.4-bcmath php7.4-soap php7.4-intl php7.4-gd php7.4-imagick
+        dir: /
+      
+      - name: Install sqlite for PHP with apt-get
+        type: command
+        cmd: apt-get install -qq -y php7.4-sqlite
+        dir: /
+      
+      - name: Download composer setup file
+        type: command
+        cmd: sudo curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
+        dir: ~/
+      
+      - name: Store downloaded installer for verification
+        type: shell
+        option: sync
+        cmd: HASH=`curl -sS https://composer.github.io/installer.sig`
+      
+      - name: Verify that the script is safe to run
+        type: command
+        cmd: sudo php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '$HASH') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+        dir: ~/
+      
+      - name: Install composer globally
+        type: command
+        cmd: sudo php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
+        dir: ~/
+
+      - name: Create directory for composer dependency installation
+        type: file
+        path: "{{ repo_dir }}/vendor"
+        state: directory
+
+      - name: Change user permissions of the repo
+        type: command
+        cmd: "sudo chown -R root {{ repo_dir }}"
+        dir: ~/
+      
+      - name: Install dependencies builds of the project with composer
+        type: command
+        cmd: composer install --prefer-source --no-interaction
+        dir: "{{ repo_dir }}"
+      
+      - name: Output tighten confomo dependency build
+        type: debug
+        option: var
+        var: result
+
+##########################################################################################################
+
+  - name: test-tighten_confomo # ------------------------------------------------------------------------- | Test Open Source Project 2: tighten confomo |
+    steps:
+
+      - name: Check if tighten confomo has been built
+        type: stat
+        path: "{{ repo_dir }}"
+
+      - name: Stop test job if tighten confomo has not been built; otherwise, proceed
+        type: fail
+        msg: "Error - tighten confomo has not been built yet. Please run 'pipeline build build-tighten_confomo <path>/build.yml' to build the application first."
+      
+      - name: Copy the example env file
+        type: copy
+        option: file
+        src: "{{ repo_dir }}/.env.example"
+        dest: "{{ repo_dir }}/.env"
+      
+      - name: Generate app key
+        type: command
+        cmd: sudo php artisan key:generate
+        dir: "{{ repo_dir }}"
+      
+      - name: Run the tighten confomo tests
+        type: command
+        cmd: sudo vendor/bin/phpunit
+        dir: "{{ repo_dir }}"
+      
+      - name: Output results of the tests
+        type: debug
+        option: var
+        var: result
+
+##########################################################################################################
+
+  - name: deploy-tighten_confomo # ----------------------------------------------------------------------- | Deploy Open Source Project 2: tighten confomo |
+    steps:
+
+      - name: curl nodejs 16
+        type: shell
+        option: sync
+        cmd: curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+
+      - name: Install nodejs from the curl'd setup script
+        type: apt
+        pkg: nodejs
+
+      - name: Record the port that the web app is deployed on
+        type: copy
+        option: content
+        content: "{{ proj2_webapp_port }}"
+        dest: /bakerx/vars/webapp-port.json
+
+      - name: Record the the web app endpoint to monitor
+        type: copy
+        option: content
+        content: '"{{ proj2_webapp_endpoint }}"'
+        dest: /bakerx/vars/webapp-endpoint.json
+
+      - name: Create empty directory for repo
+        type: file
+        path: "{{ repo_dir }}"
+        state: directory
+
+      - name: Clone tighten confomo repo
+        type: git
+        repo: "{{ proj2_repo }}"
+        dest: "{{ repo_dir }}"
+        branch: master
+      
+      - name: Install repository for PHP versions
+        type: command
+        cmd: add-apt-repository ppa:ondrej/php -y
+        dir: /
+      
+      - name: Update apt-get package manager with the new PHP stuff
+        type: command
+        cmd: apt-get update -y
+        dir: /
+      
+      - name: Update apt package manager with the new PHP stuff
+        type: command
+        cmd: apt update -y
+        dir: /
+
+      - name: Install PHP 7.4
+        type: command
+        cmd: apt install -y php7.4
+        dir: /
+      
+      - name: Install additional PHP components with apt
+        type: command
+        cmd: apt install -qq -y php7.4-cli php7.4-curl php7.4-mbstring php7.4-xml php7.4-zip php7.4-bcmath php7.4-soap php7.4-intl php7.4-gd php7.4-imagick
+        dir: /
+      
+      - name: Install sqlite for PHP with apt-get
+        type: command
+        cmd: apt-get install -qq -y php7.4-sqlite
+        dir: /
+      
+      - name: Download composer setup file
+        type: command
+        cmd: sudo curl -sS https://getcomposer.org/installer -o /tmp/composer-setup.php
+        dir: ~/
+      
+      - name: Store downloaded installer for verification
+        type: shell
+        option: sync
+        cmd: HASH=`curl -sS https://composer.github.io/installer.sig`
+      
+      - name: Verify that the script is safe to run
+        type: command
+        cmd: sudo php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '$HASH') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
+        dir: ~/
+      
+      - name: Install composer globally
+        type: command
+        cmd: sudo php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
+        dir: ~/
+
+      - name: Create directory for composer dependency installation
+        type: file
+        path: "{{ repo_dir }}/vendor"
+        state: directory
+
+      - name: Change user permissions of the repo
+        type: command
+        cmd: "sudo chown -R root {{ repo_dir }}"
+        dir: ~/
+      
+      - name: Install dependencies builds of the project with composer
+        type: command
+        cmd: composer install --prefer-source --no-interaction
+        dir: "{{ repo_dir }}"
+      
+      - name: Copy the example env file
+        type: copy
+        option: file
+        src: "{{ repo_dir }}/.env.example"
+        dest: "{{ repo_dir }}/.env"
+      
+      - name: Generate app key
+        type: command
+        cmd: sudo php artisan key:generate
+        dir: "{{ repo_dir }}"
+
+      - name: Install npm packages
+        type: command
+        cmd: sudo npm i
+        dir: "{{ repo_dir }}"
+
+      - name: Start the application with IP of the current instance and the port
+        type: shell
+        option: async
+        cmd: "cd {{ repo_dir }}; nohup sudo php -S $(ip a | grep -Eo '([0-9]*\\.){3}[0-9]*.*enp0s8' | grep -Eo '([0-9]*\\.){3}[0-9]*'):{{ proj2_webapp_port }} -t public"
+      
+      - name: Web app is now ready
+        type: debug
+        option: msg
+        msg: "Web app can now be accessed on port {{ proj2_webapp_port }}."
+
+##########################################################################################################
+
+  - name: build-7ep_demo # ------------------------------------------------------------------------------- | Build Open Source Project 1: 7ep demo |
+    steps:
+
+      - name: curl nodejs 16
+        type: shell
+        option: sync
+        cmd: curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+
+      - name: Install nodejs from the curl'd setup script
+        type: apt
+        pkg: nodejs
+
+      - name: Create empty directory for repo
+        type: file
+        path: "{{ repo_dir }}"
+        state: directory
+
+      - name: Clone 7ep demo repo
+        type: git
+        repo: "{{ proj1_repo }}"
+        dest: "{{ repo_dir }}"
+        branch: master
+
+      - name: Start 7ep demo build and run basic tests
+        type: command
+        cmd: ./gradlew check
+        dir: "{{ repo_dir }}"
+
+      - name: Output 7ep demo build and basic tests
+        type: debug
+        option: var
+        var: result
+
+##########################################################################################################
+
+  - name: test-7ep_demo # -------------------------------------------------------------------------------- | Test Open Source Project 1: 7ep demo |
+    steps:
+
+      - name: Check if 7ep demo has been built
+        type: stat
+        path: "{{ repo_dir }}"
+
+      - name: Stop test job if 7ep demo has not been built; otherwise, proceed
+        type: fail
+        msg: "Error - 7ep demo has not been built yet. Please run 'pipeline build build-7ep_demo <path>/build.yml' to build the application first."
+      
+      - name: Download the get-pip script for the API and Selenium tests
+        type: get_url
+        url: https://bootstrap.pypa.io/get-pip.py
+        dest: ~/
+      
+      - name: Run the get-pip.py script
+        type: command
+        cmd: python3 get-pip.py
+        dir: ~/
+      
+      - name: Add wheel, pip, pip3 and pip3.8 to path
+        type: command
+        cmd: echo 'export PATH="/home/vagrant/.local/bin:\$PATH"' >> .bashrc
+        dir: ~/
+      
+      - name: Install pipenv with pip for dependency handling of tests
+        type: command
+        cmd: pip install pipenv
+        dir: ~/
+      
+      - name: Install dependency environment
+        type: command
+        cmd: pipenv install   
+        dir: "{{ repo_dir }}"
+      
+      - name: Download chrome installation setup file
+        type: get_url
+        url: https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        dest: ~/
+      
+      - name: Install chrome from the installation setup file
+        type: command
+        cmd: sudo dpkg -i google-chrome-stable_current_amd64.deb
+        dir: ~/
+      
+      - name: Fix the packages dependencies from the chrome installation
+        type: command
+        cmd: sudo apt-get install -f -y
+        dir: ~/
+      
+      - name: Download chromedriver installation setup file
+        type: get_url
+        url: https://chromedriver.storage.googleapis.com/92.0.4515.107/chromedriver_linux64.zip
+        dest: ~/
+      
+      - name: Extract the chromedriver zip file and place into bin
+        type: unarchive
+        src: ~/chromedriver_linux64.zip
+        dest: /usr/bin/
+      
+      - name: Clean the build products before running web app
+        type: command
+        cmd: ./gradlew clean
+        dir: "{{ repo_dir }}"
+      
+      - name: Run the app on a separate process
+        type: shell
+        option: async
+        cmd: "cd {{ repo_dir }}; screen -d -m sudo ./gradlew apprun"
+      
+      - name: "Wait for the application to start on port {{ proj1_webapp_port }}"
+        type: wait_for
+        option: port
+        port: "{{ proj1_webapp_port }}"
+      
+      - name: Wait additional more seconds for application to load
+        type: shell
+        option: sync
+        cmd: sleep 3
+
+      - name: Run API tests
+        type: command
+        cmd: ./gradlew runApiTests
+        dir: "{{ repo_dir }}"
+
+      - name: Output API test coverage and result
+        type: debug
+        option: var
+        var: result
+
+      - name: Shutdown the application
+        type: command
+        cmd: pkill -9 -f tomcat
+        dir: "{{ repo_dir }}"
+
+##########################################################################################################
+
+  - name: deploy-7ep_demo # ------------------------------------------------------------------------------ | Deploy Open Source Project 1: 7ep demo |
+    steps:
+
+      - name: curl nodejs 16
+        type: shell
+        option: sync
+        cmd: curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+
+      - name: Install nodejs from the curl'd setup script
+        type: apt
+        pkg: nodejs
+
+      - name: Create empty directory for repo
+        type: file
+        path: "{{ repo_dir }}"
+        state: directory
+
+      - name: Clone 7ep demo repo
+        type: git
+        repo: "{{ proj1_repo }}"
+        dest: "{{ repo_dir }}"
+        branch: master
+      
+      - name: Record the port that the web app is deployed on
+        type: copy
+        option: content
+        content: "{{ proj1_webapp_port }}"
+        dest: /bakerx/vars/webapp-port.json
+
+      - name: Record the the web app endpoint to monitor
+        type: copy
+        option: content
+        content: '"{{ proj1_webapp_endpoint }}"'
+        dest: /bakerx/vars/webapp-endpoint.json
+      
+      - name: Run the app on a separate process
+        type: shell
+        option: async
+        cmd: "cd {{ repo_dir }}; screen -d -m sudo ./gradlew apprun"
+      
+      - name: "Wait for the application to start on port {{ proj1_webapp_port }}"
+        type: wait_for
+        option: port
+        port: "{{ proj1_webapp_port }}"
+      
+      - name: Web app is now ready
+        type: debug
+        option: msg
+        msg: "Web app can now be accessed on port {{ proj1_webapp_port }}."
+
+##########################################################################################################
+
+  - name: kill-7ep_demo # -------------------------------------------------------------------------------- | Kill Open Source Project 1: 7ep demo (not new feature; just for my convenience) |
+    steps:
+
+      - name: Kill tomcat servers on blue/green instances
+        type: command
+        cmd: pkill -9 -f tomcat
+        dir: "{{ repo_dir }}"
+      
+      - name: Output result of killing tomcat server
+        type: debug
+        option: var
+        var: result
+
+##########################################################################################################
+
+  - name: build-itrust # --------------------------------------------------------------------------------- | M1 Build iTrust |
+    steps:
+
+      - name: curl nodejs 16
+        type: shell
+        option: sync
+        cmd: curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+
+      - name: Install nodejs from the curl'd setup script
+        type: apt
+        pkg: nodejs
+
+      - name: Create empty directory for repo
+        type: file
+        path: "{{ repo_dir }}"
+        state: directory
+
+      - name: Clone iTrust repo
+        type: git
+        repo: "https://{{ git_pat }}@github.ncsu.edu/engr-csc326-staff/iTrust2-v10.git"
+        dest: "{{ repo_dir }}"
+        branch: main
+
+      - name: Set password input 1 & 2 for MySQL server installation
+        type: debconf
+        pass: "{{ mysql_pass }}"
+
+      - name: Install MySQL
+        type: apt
+        pkg: mysql-server
+
+      - name: Wait for MySQL server
+        type: wait_for
+        option: port
+        port: "{{ mysql_port }}"
+
+      - name: Copy application.template.yml to application.yml
+        type: copy
+        option: file
+        src: "{{ repo_dir }}/iTrust2/src/main/resources/application.yml.template"
+        dest: "{{ repo_dir }}/iTrust2/src/main/resources/application.yml"
+
+      - name: Place password into application.yml
+        type: lineinfile
+        option: replace
+        path: "{{ repo_dir }}/iTrust2/src/main/resources/application.yml"
+        regexp: "password:"
+        line: "    password: {{ mysql_pass }}"
+      
+      - name: Start iTrust2 build and run tests
+        type: command
+        cmd: mvn --batch-mode --update-snapshots clean test
+        dir: "{{ repo_dir }}/iTrust2"
+
+      - name: Edit Application class to extend SpringBootServletInitializer class
+        type: lineinfile
+        option: replace
+        path: "{{ repo_dir }}/iTrust2/src/main/java/edu/ncsu/csc/iTrust2/ITrust2Application.java"
+        regexp: "public class ITrust2Application {"
+        line: "public class ITrust2Application extends SpringBootServletInitializer {"
+
+      - name: Insert method for building .war file
+        type: lineinfile
+        option: insert
+        path: "{{ repo_dir }}/iTrust2/src/main/java/edu/ncsu/csc/iTrust2/ITrust2Application.java"
+        insertafter: "public class ITrust2Application *"
+        line: "\n    @Override\n    protected SpringApplicationBuilder configure(SpringApplicationBuilder application) { return application.sources(ITrust2Application.class); }"
+
+      - name: Insert import for SpringBootServletInitializer
+        type: lineinfile
+        option: insert
+        path: "{{ repo_dir }}/iTrust2/src/main/java/edu/ncsu/csc/iTrust2/ITrust2Application.java"
+        insertafter: "import org.springframework.context.annotation.Bean;"
+        line: "import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;"
+
+      - name: Insert import for SpringApplicationBuilder
+        type: lineinfile
+        option: insert
+        path: "{{ repo_dir }}/iTrust2/src/main/java/edu/ncsu/csc/iTrust2/ITrust2Application.java"
+        insertafter: "import org.springframework.context.annotation.Bean;"
+        line: "import org.springframework.boot.builder.SpringApplicationBuilder;"
+
+      - name: Insert war package configuration to pom.xml
+        type: lineinfile
+        option: insert
+        path: "{{ repo_dir }}/iTrust2/pom.xml"
+        insertafter: "<version>10</version>"
+        line: "\t<packaging>war</packaging>"
+
+      - name: Insert tomcat dependency configuration to pom.xml
+        type: lineinfile
+        option: insert
+        path: "{{ repo_dir }}/iTrust2/pom.xml"
+        insertafter: "<!-- Bits and pieces of Spring -->"
+        line: "\t\t<dependency>\n\t\t\t<groupId>org.springframework.boot</groupId>\n\t\t\t<artifactId>spring-boot-starter-tomcat</artifactId>\n\t\t\t<scope>provided</scope>\n\t\t</dependency>"
+
+      - name: Output iTrust2 build
+        type: debug
+        option: var
+        var: result
+
+      - name: Package iTrust to war file for Tomcat
+        type: command
+        cmd: mvn package
+        dir: "{{ repo_dir }}/iTrust2"
+
+      - name: Wait for war file to generate
+        type: wait_for
+        option: file
+        file: "{{ repo_dir }}/iTrust2/target/iTrust2-10.war"
+
+      - name: Copy the war file to the shared directory
+        type: copy
+        option: file
+        src: "{{ repo_dir }}/iTrust2/target/iTrust2-10.war"
+        dest: "/bakerx/deployment/iTrust.war"
+
+##########################################################################################################
+
+  - name: deploy-itrust # -------------------------------------------------------------------------------- | M3 Deploy iTrust |
+    steps:
+
+      - name: Check if the war file exists in the Tomcat directory
+        type: stat
+        path: "/bakerx/iTrust.war"
+
+      - name: Stop deployment if war file does not exist. Otherwise, proceed.
+        type: fail
+        msg: "Error - Application has not been built yet. Please run 'pipeline build build-itrust <path>/build.yml' to build the application."
+
+      - name: Record the port that iTrust is deployed on
+        type: copy
+        option: content
+        content: "{{ webapp_port }}"
+        dest: /bakerx/vars/webapp-port.json
+
+      - name: Record the iTrust endpoint to monitor
+        type: copy
+        option: content
+        content: '"{{ webapp_endpoint }}"'
+        dest: /bakerx/vars/webapp-endpoint.json
+
+      - name: Create empty directory for Tomcat 9
+        type: file
+        path: "{{ tomcat_dir }}"
+        state: directory
+
+      - name: Install Tomcat 9 tar file
+        type: get_url
+        url: "{{ tomcat_url }}"
+        dest: "{{ tomcat_dir }}"
+      
+      - name: Extract Tomcat 9 tar file
+        type: unarchive
+        src: "{{ tomcat_dir }}/apache-tomcat-9.0.62.tar.gz"
+        dest: "{{ tomcat_dir }}"
+      
+      - name: Copy the war file to the Tomcat directory
+        type: copy
+        option: file
+        src: /bakerx/iTrust.war
+        dest: "{{ tomcat_dir }}/apache-tomcat-9.0.62/webapps/"
+      
+      - name: Set password input 1 & 2 for MySQL server installation
+        type: debconf
+        pass: "{{ mysql_pass }}"
+
+      - name: Install MySQL
+        type: apt
+        pkg: mysql-server
+
+      - name: Wait for MySQL server
+        type: wait_for
+        option: port
+        port: "{{ mysql_port }}"
+
+      - name: Start the Tomcat server
+        type: command
+        cmd: "nohup {{ tomcat_dir }}/apache-tomcat-9.0.62/bin/startup.sh"
+        dir: /
+
+      - name: Output Tomcat server start
+        type: debug
+        option: var
+        var: result
+
+##########################################################################################################
+
+  - name: mutation-coverage # ---------------------------------------------------------------------------- | M2 Mutation Coverage |
+    mutation:
+      # URL of the repo
+      url: &repo_url https://github.com/chrisparnin/checkbox.io-micro-preview.git
+      # Number of mutations to perform
+      iterations: &iters 5
+
+      # Snapshots to record
+      snapshots: &snap
+       - http://localhost:3000/survey/long.md
+       - http://localhost:3000/survey/upload.md
+       - http://localhost:3000/survey/survey.md
+       - http://localhost:3000/survey/variations.md
+
+      # Filename to mutate and path relative to the REPO
+      mutate: &mut
+       - file: marqdown.js
+         path: /
+
+    # Steps for fuzzing
+    steps:
+
+      - name: Create empty directory for repo
+        type: file
+        path: "{{ mut_dir }}"
+        state: directory
+      
+      - name: Add created directory as safe for git clone
+        type: command
+        cmd: git config --global --add safe.directory /bakerx/mutation-repository
+        dir: /bakerx
+
+      - name: Clone URL to empty directory
+        type: git
+        repo: *repo_url
+        dest: "{{ mut_dir }}"
+        branch: master
+
+      - name: Record and keep track of number of iterations
+        type: copy
+        option: content
+        content: *iters
+        dest: /bakerx/test-harness/vars/track-iters.json
+
+      - name: Record URLs to snapshot
+        type: copy
+        option: content
+        content: *snap
+        dest: /bakerx/test-harness/vars/snapshot-urls.json
+
+      - name: Record source files to mutate
+        type: copy
+        option: content
+        content: *mut
+        dest: /bakerx/test-harness/vars/source-files.json
+
+      - name: curl nodejs 16
+        type: shell
+        option: sync
+        cmd: curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+
+      - name: Install nodejs from the curl'd setup script
+        type: apt
+        pkg: nodejs
+
+      - name: Clean install npm packages for microservice
+        type: command
+        cmd: sudo npm ci
+        dir: "{{ mut_dir }}"
+
+      - name: Clean install npm packages for fuzzing script
+        type: command
+        cmd: sudo npm ci
+        dir: /bakerx/test-harness
+      
+      - name: Pause for a second to catch breath
+        type: command
+        cmd: sleep 1
+        dir: /
+
+      - name: Run fuzzing test script
+        type: command
+        cmd: node /bakerx/test-harness/mutationTest.js
+        dir: /bakerx
+
+      - name: Output results of fuzzing test
+        type: debug
+        option: var
+        var: result

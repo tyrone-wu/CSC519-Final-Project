@@ -1,0 +1,39 @@
+---
+# Build job
+- name: Build Jobs
+  gather_facts: false
+  become: true
+
+  # Load the build structure for setup and jobs
+  vars_files:
+    - "./vars/{{ build }}"
+
+  # The host of the server to run the job
+  hosts: "{{ host }}"
+
+  # Tasks for running setup
+  pre_tasks:
+
+    - name: Define the setup to run
+      set_fact:
+        job_setup: "{{ item }}"
+      when: item.name == job_name
+      loop: "{{ setup }}"
+
+    - name: Installing Prerequisite Packages from the setup
+      include_tasks: "./tasks/apt-module.yml"
+      loop: "{{ job_setup.packages if job_setup.packages is iterable else [] }}"
+
+    - name: Define the job to run
+      set_fact:
+        job: "{{ item }}"
+      when: item.name == job_name
+      loop: "{{ jobs }}"
+
+  # Tasks for running jobs
+  tasks:
+
+    - name: "Running Job: {{ job.name }}"
+      include_tasks: "./tasks/{{ item.type }}-module.yml"
+      loop: "{{ job.steps }}"
+

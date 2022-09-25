@@ -1,0 +1,15 @@
+---
+# debconf module
+- name: "{{ item.name }}"
+  debconf:
+    name: mysql-server
+    question: mysql-server/root_password
+    vtype: password
+    value: "{{ item.pass }}"
+
+- name: "{{ item.name }}"
+  debconf:
+    name: mysql-server
+    question: mysql-server/root_password_again
+    vtype: password
+    value: "{{ item.pass }}"

@@ -1,0 +1,14 @@
+---
+# command module
+- name: "{{ item.name }}"
+  command:
+    cmd: "{{ item.cmd }}"
+    chdir: "{{ item.dir }}"
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  register: result
+  failed_when: result.rc not in [0, 1]
+  ignore_errors: True
+  retries: 10
+  delay: 5
+  until: result is not failed

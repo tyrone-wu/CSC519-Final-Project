@@ -1,0 +1,14 @@
+---
+# wait_for module
+- name: "{{ item.name }}"
+  wait_for:
+    port: "{{ item.port }}"
+    delay: 10
+  when: item.option == "port"
+
+- name: "{{ item.name }}"
+  wait_for:
+    path: "{{ item.file }}"
+    delay: 10
+    state: present
+  when: item.option == "file"

@@ -1,0 +1,53 @@
+servers:
+
+  - name: blue
+    image: focal
+    ip: 192.168.56.25
+    memory: 4096
+    sync: true
+    up: |
+      sleep 1
+      set -x
+
+      sudo apt-get -qq -y update
+      # redis
+      sudo apt-get install -qq -y redis-server
+      sudo sed -i 's/supervised no/supervised systemd/g' /etc/redis/redis.conf
+      sudo sed -i 's/bind 127.0.0.1 ::1/bind 0.0.0.0/g' /etc/redis/redis.conf
+      sudo systemctl restart redis
+
+      cd /bakerx/
+      mv blue.pub /home/vagrant/.ssh/
+      cat /home/vagrant/.ssh/blue.pub >> /home/vagrant/.ssh/authorized_keys
+
+      ping -c 1 192.168.56.10
+
+      touch ./inventory
+      echo "[deploy]" > ./inventory
+      echo "$(ip a | grep -Eo "([0-9]*\.){3}[0-9]*.*enp0s8" | grep -Eo "([0-9]*\.){3}[0-9]*") ansible_ssh_user=vagrant ansible_ssh_private_key_file=/home/vagrant/.ssh/blue" >> ./inventory
+
+  - name: green
+    image: focal
+    ip: 192.168.56.30
+    memory: 4096
+    sync: true
+    up: |
+      sleep 1
+      set -x
+
+      sudo apt-get -qq -y update
+      # redis
+      sudo apt-get install -qq -y redis-server
+      sudo sed -i 's/supervised no/supervised systemd/g' /etc/redis/redis.conf
+      sudo sed -i 's/bind 127.0.0.1 ::1/bind 0.0.0.0/g' /etc/redis/redis.conf
+      sudo systemctl restart redis
+
+      cd /bakerx/
+      mv green.pub /home/vagrant/.ssh/
+      cat /home/vagrant/.ssh/green.pub >> /home/vagrant/.ssh/authorized_keys
+
+      ping -c 1 192.168.56.10
+
+      echo "$(ip a | grep -Eo "([0-9]*\.){3}[0-9]*.*enp0s8" | grep -Eo "([0-9]*\.){3}[0-9]*") ansible_ssh_user=vagrant ansible_ssh_private_key_file=/home/vagrant/.ssh/green" >> ./inventory
+      echo "[deploy:vars]" >> ./inventory
+      echo "ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ./inventory

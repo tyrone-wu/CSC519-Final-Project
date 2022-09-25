@@ -1,0 +1,5 @@
+---
+- name: "{{ item.name }}"
+  stat:
+    path: "{{ item.path }}"
+  register: stat_result

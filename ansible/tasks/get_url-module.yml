@@ -1,0 +1,7 @@
+---
+# get_url module
+- name: "{{ item.name }}"
+  get_url:
+    url: "{{ item.url }}"
+    dest: "{{ item.dest }}"
+    mode: 777

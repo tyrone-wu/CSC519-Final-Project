@@ -1,0 +1,8 @@
+---
+# git module
+- name: "{{ item.name }}"
+  git:
+    repo: "{{ item.repo }}"
+    dest: "{{ item.dest }}"
+    version: "{{ item.branch }}"
+    force: true

@@ -1,0 +1,6 @@
+---
+# file module
+- name: "{{ item.name }}"
+  file:
+    path: "{{ item.path }}"
+    state: "{{ item.state }}"

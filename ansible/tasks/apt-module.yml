@@ -1,0 +1,12 @@
+---
+# apt module
+- name: "Installing {{ item.pkg }}"
+  apt:
+    pkg: "{{ item.pkg }}"
+    state: present
+    update_cache: yes
+    force: yes
+  retries: 10
+  delay: 5
+  register: retry_result
+  until: retry_result is not failed

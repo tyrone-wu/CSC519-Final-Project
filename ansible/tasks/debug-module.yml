@@ -1,0 +1,11 @@
+---
+# debug module
+- name: "{{ item.name }}"
+  debug:
+    msg: "{{ item.msg }}"
+  when: item.option == "msg"
+
+- name: "{{ item.name }}"
+  debug:
+    var: "{{ item.var }}.stdout_lines"
+  when: item.option == "var"

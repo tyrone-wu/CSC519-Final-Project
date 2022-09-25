@@ -1,0 +1,5 @@
+---
+- name: "{{ item.name }}"
+  fail:
+    msg: "{{ item.msg }}"
+  when: not stat_result.stat.exists
