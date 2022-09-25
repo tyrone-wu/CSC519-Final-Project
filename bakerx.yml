@@ -1,0 +1,70 @@
+# Variables to use (only an ansible feature, so not working)
+vars:
+  config-ip: 192.168.56.10
+  web-ip: 192.168.56.100
+
+# Provision VMs
+servers:
+
+  # Provision server for configuring servers
+  - name: config-srv
+    image: focal
+    ip: 192.168.56.10
+    sync: true
+    up: |
+      sleep 1
+      set -x
+
+      sudo add-apt-repository ppa:ansible/ansible > /dev/null
+      sudo apt-get -qq -y update
+      sudo apt-get install -qq -y ansible
+
+      cd /bakerx/
+      ssh-keygen -t rsa -b 4096 -C "web-srv" -f web-srv -N ""
+      mv web-srv /home/vagrant/.ssh/
+      chmod 600 /home/vagrant/.ssh/web-srv
+
+      cat .env | sudo tee -a /etc/environment
+      source /etc/environment
+
+  # Provision server for the web server
+  - name: web-srv
+    image: focal
+    ip: 192.168.56.100
+    sync: true
+    memory: 4096
+    up: |
+      sleep 1
+      set -x
+
+      sudo apt-get -qq -y update
+      sudo apt-get install -qq -y redis-server
+      sudo sed -i 's/supervised no/supervised systemd/g' /etc/redis/redis.conf
+      sudo sed -i 's/bind 127.0.0.1 ::1/bind 0.0.0.0/g' /etc/redis/redis.conf
+      sudo systemctl restart redis
+
+      cd /bakerx/
+      mv web-srv.pub /home/vagrant/.ssh/
+      cat /home/vagrant/.ssh/web-srv.pub >> /home/vagrant/.ssh/authorized_keys
+
+      ping -c 1 192.168.56.10
+
+      touch ./ansible/inventory
+      echo "[web]" > ./ansible/inventory
+      echo "$(ip a | grep -Eo "([0-9]*\.){3}[0-9]*.*enp0s8" | grep -Eo "([0-9]*\.){3}[0-9]*") ansible_ssh_user=vagrant ansible_ssh_private_key_file=/home/vagrant/.ssh/web-srv" >> ./ansible/inventory
+      echo "[web:vars]" >> ./ansible/inventory
+      echo "ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> ./ansible/inventory
+
+
+# touch buildjob-vm-info.txt
+# echo "[build-srv]" > buildjob-vm-info.txt
+# echo "user=$(whoami)" >> buildjob-vm-info.txt
+# echo "ip=$(ip a | grep -Eo "([0-9]*\.){3}[0-9]*.*enp0s8" | grep -Eo "([0-9]*\.){3}[0-9]*")" >> buildjob-vm-info.txt
+# echo "ssh_key_path=/home/vagrant/.ssh/jobs-srv" >> buildjob-vm-info.txt
+
+# echo "[jobs-srv]" >> buildjob-vm-info.txt
+# echo "user=$(whoami)" >> buildjob-vm-info.txt
+# echo "ip=$(ip a | grep -Eo "([0-9]*\.){3}[0-9]*.*enp0s8" | grep -Eo "([0-9]*\.){3}[0-9]*")" >> buildjob-vm-info.txt
+# echo "ssh_key_path=/home/vagrant/.ssh/jobs-srv.pub" >> buildjob-vm-info.txt
+
+# $(cat buildjob-vm-info.txt | grep -Eo "ip=.*" | tail -1 | sed -r "s/ip=//")
