@@ -1,0 +1,19 @@
+{
+    "name": "pipeline",
+    "version": "1.0.0",
+    "description": "Pipeline project for iTrust2.",
+    "main": "index.js",
+    "bin": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "Team 32",
+    "license": "ISC",
+    "dependencies": {
+        "chalk": "^4.1.2",
+        "dotenv": "^16.0.0",
+        "hasbin": "^1.2.3",
+        "js-yaml": "^4.1.0",
+        "yargs": "^17.3.1"
+    }
+}
