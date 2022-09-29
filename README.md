@@ -154,21 +154,3 @@ $ node index.js monitor-deploy ./deployment/inventory deploy-tighten_confomo ./a
 ## 📹 **Screencast: tighten confomo**  
 
 [LINK TO SCREENCAST HERE](https://drive.google.com/file/d/1M5hGp36vWiYhn93K7rboxGIpLqMV5Dcj/view?usp=sharing)
-
-<br/>
-
----
-
-## 📋 **F0 Report**  
-
-For `F0`, the open source projects that I have chosen are [7ep demo](https://github.com/7ep/demo) and [tighten confomo](https://github.com/tighten/confomo), both of which had different challenges and issues that had to overcome. 
-
-As for [7ep demo](https://github.com/7ep/demo), building the stack was relatively simple because there was already a command that set all the stacks of the web application. However, there was more installations and setups involved when executing the web tests of the project. As opposed to simple tests of the build stage of the pipeline, the test stage requires `google chrome` with the `chromedriver`  to execute the API and UI tests. Additionally, the application has to be running for the API and UI tests to fully execute and pass. Using `nohup` and `setsid` didn't work since the web app ended right after it's execution, however, using `screen` in detached mode worked perfectly with the `asynchronous` option from the `shell` module. By spawning and executing the web app in the new terminal, I was able to run and pass the API and UI tests. Right after the tests finished, I ended the web app using `pkill -9 -f tomcat` to end the tomcat server.  
-
-In the [tighten confomo](https://github.com/tighten/confomo) pipeline, the setting up and building the application was a lot harder compared to the first project because there was not script/command that handled the setup. Building the web app involved installing various components of `phpv7.4`, which was confusing at first because some components were not available on `apt` and could only be installed with `apt-get` (`php7.4-sqlite`). Another issue was having to go through the installation process of `composer`, which involved downloaded and verifying the setup script before installing it. There were other time consuming blockers that I encountered along the way, such as having to set `root` user permissions for the cloned repository and having extracting the current IP of the instance, but overall the experience was very valuable in applying my DevOps knowledge towards open sources projects. 
-
-There were flaky errors that I encountered, them being package installation fails, `bakerx` errors, and project dependency that access URL's that are down. All of these errors were unfortunately out of my hand, and the only fix is to re-run the command or start completely over. It was a bit frustrating because these issues not something I could fix, however moving past that, everything else went as mentioned above.  
-
-For the new feature, I decided to extend the `pipeline deploy ...` stage to include a dashboard that monitors various statistics, such as CPU usage, memory, latency, HTTP health status, and time-trend score. These statistics were gathered from the `web-srv` instance which holds the proxy that directs the traffic towards the `blue-green` servers, and the `blue` and `green` instances from M3's blue/green deployment strategy. Since M3 was generalized to extract the IP, port, and endpoint from the `build.yml` parameters, getting the dashboard to connect to the `web-srv`, `blue`, and `green` servers didn't take as much time as I thought. The most time consuming aspect was trying to having `pipeline monitor-deploy ...` run through the necessary setups on top of the existing infrastructure to connect deployment to the dashboard script. The additional setup uses `forever` to run the dashboard script, and the existing proxy script was modified to also use `forever` since it was cleaner than having the terminal continuously print the health status. Overall, this project was very challenging and rewarding!
-
----
