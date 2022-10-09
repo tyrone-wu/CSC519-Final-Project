@@ -1,4 +1,19 @@
-# 💎 F0-tkwu README
+# 🤖 Automated Build, Deployment, and Monitoring Project
+
+My CSC519 DevOps final project. Our `build.yml` was required to have the following structure:  
+```yaml
+setup:
+  - <list-of-steps>
+  - ...
+  - <list-of-steps>
+
+jobs:
+  - name: <job-name>
+    steps:
+      - <list-of-steps>
+      - ...
+      - <list-of-steps>
+```
 
 ## 💻 **How to run**
 
