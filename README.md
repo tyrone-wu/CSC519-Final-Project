@@ -17,9 +17,7 @@ jobs:
 
 ## 💻 **How to run**
 
----
-
-### **Prerequisites** 🎛️  
+### **Prerequisites**
 
 #### **Software**  
 
@@ -45,8 +43,6 @@ Our design is only be run Intel-based computers... Sorry M1 😔
 bakerx pull focal cloud-images.ubuntu.com 
 ```
 
---- 
-
 **Note:** An `.env` file is not used for F0 job.
 
 ---
@@ -61,7 +57,7 @@ The new feature builds on top of the previous `pipeline deploy ...` stage with `
 
 https://github.com/7ep/demo  
 
-### **How to Run 7ep demo Pipeline.** 🐧
+### **How to Run 7ep demo Pipeline.**
 
 **Note:** If at anytime the pipeline fails, please re-run the job or completely re-start the pipeline over. Measure have been taken to counteract these flaky errors using retries and delays, however, the overall issue unfortunately out of my hands. Common errors you may encounter include, `dpkg lock` error, corrupt package installation errors (`ansible`), or `bakerx` errors in general. The best and only option (if the retries also fail) is to re-running the command.  
 
@@ -108,21 +104,11 @@ $ node index.js monitor-deploy ./deployment/inventory deploy-7ep_demo ./ansible/
 
 ---
 
-## 📹 **Screencast: 7ep demo**  
-
-[LINK TO SCREENCAST HERE](https://drive.google.com/file/d/1XuUXjaQyxVNeWCNFjW_jGbM9rhsIkKT1/view?usp=sharing)
-
-<br/>
-
----
-
----
-
 ## **Open Source Project 2: tighten confomo** 📂  
 
 https://github.com/tighten/confomo  
 
-### **How to Run tighten confomo Pipeline.** 🐧
+### **How to Run tighten confomo Pipeline.**
 
 **Note:** If at anytime the pipeline fails, please re-run the job or completely re-start the pipeline over. Measure have been taken to counteract these flaky errors using retries and delays, however, the overall issue unfortunately out of my hands. Common errors you may encounter include, `dpkg lock` error, corrupt package installation errors (`ansible`), or `bakerx` errors in general. The best and only option (if the retries also fail) is to re-running the command.  
 
@@ -163,9 +149,3 @@ $ node index.js monitor-deploy ./deployment/inventory deploy-tighten_confomo ./a
 ```
 
 *Note:* No endpoint is used to access the web application.  
-
----
-
-## 📹 **Screencast: tighten confomo**  
-
-[LINK TO SCREENCAST HERE](https://drive.google.com/file/d/1M5hGp36vWiYhn93K7rboxGIpLqMV5Dcj/view?usp=sharing)
